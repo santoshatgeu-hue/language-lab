@@ -12,8 +12,19 @@ import random
 st.set_page_config(page_title="GEU Language Lab", layout="wide", page_icon="🏫")
 
 # 1. Setup your Azure Credentials
-AZURE_KEY = "2ms8Nj0zeuaQZiuAXKKiTn00jDUTsyJXHFom9aBXXtMb2gzummt0JQQJ99CBACGhslBXJ3w3AAAYACOGbUVv"
-AZURE_REGION = "centralindia" # or your region
+#AZURE_KEY = "2ms8Nj0zeuaQZiuAXKKiTn00jDUTsyJXHFom9aBXXtMb2gzummt0JQQJ99CBACGhslBXJ3w3AAAYACOGbUVv"
+#AZURE_REGION = "centralindia" # or your region
+
+# --- 1. CONFIGURATION (Updated for Secrets) ---
+
+# This will work both locally (if set up) and on Streamlit Cloud
+try:
+    AZURE_KEY = st.secrets["AZURE_KEY"]
+    AZURE_REGION = st.secrets["AZURE_REGION"]
+except:
+    # Fallback for local testing if secrets aren't set up yet
+    AZURE_KEY = "YOUR_LOCAL_KEY_FOR_TESTING"
+    AZURE_REGION = "eastus"
 
 
 # --- 2. CURRICULUM & WARMUP BANK ---
