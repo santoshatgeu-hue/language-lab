@@ -1,0 +1,4 @@
+azure-cognitiveservices-speech
+streamlit
+streamlit-mic-recorder
+pandas
