@@ -11,9 +11,7 @@ import random
 
 st.set_page_config(page_title="GEU Language Lab", layout="wide", page_icon="🏫")
 
-# 1. Setup your Azure Credentials
-#AZURE_KEY = "2ms8Nj0zeuaQZiuAXKKiTn00jDUTsyJXHFom9aBXXtMb2gzummt0JQQJ99CBACGhslBXJ3w3AAAYACOGbUVv"
-#AZURE_REGION = "centralindia" # or your region
+
 
 # --- 1. CONFIGURATION (Updated for Secrets) ---
 
@@ -24,7 +22,7 @@ try:
 except:
     # Fallback for local testing if secrets aren't set up yet
     AZURE_KEY = "YOUR_LOCAL_KEY_FOR_TESTING"
-    AZURE_REGION = "eastus"
+    AZURE_REGION = "LOCAL_AREA"
 
 
 # --- 2. CURRICULUM & WARMUP BANK ---
