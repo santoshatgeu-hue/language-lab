@@ -1,4 +1,3 @@
-
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 import azure.cognitiveservices.speech as speechsdk
@@ -7,23 +6,15 @@ import pandas as pd
 from datetime import datetime, date
 import random
 
-
-
 st.set_page_config(page_title="GEU Language Lab", layout="wide", page_icon="🏫")
 
-
-
-# --- 1. CONFIGURATION (Updated for Secrets) ---
-
-# This will work both locally (if set up) and on Streamlit Cloud
+# --- 1. CONFIGURATION (Using Streamlit Secrets) ---
 try:
     AZURE_KEY = st.secrets["AZURE_KEY"]
     AZURE_REGION = st.secrets["AZURE_REGION"]
-except:
-    # Fallback for local testing if secrets aren't set up yet
-    AZURE_KEY = "YOUR_LOCAL_KEY_FOR_TESTING"
-    AZURE_REGION = "LOCAL_AREA"
-
+except Exception:
+    st.error("❌ Azure Secrets not found. Please configure them in Streamlit Cloud Settings.")
+    st.stop()
 
 # --- 2. CURRICULUM & WARMUP BANK ---
 curriculum = {
@@ -44,13 +35,10 @@ curriculum = {
     }
 }
 
-# New Expanded Vocabulary Bank
 warmup_bank = [
     {"word": "Innovation", "options": ["सफलता (Success)", "नवाचार (New Ideas)", "चुनौती (Challenge)"], "answer": "नवाचार (New Ideas)"},
     {"word": "Persistent", "options": ["लगातार (Continuous)", "अस्थायी (Temporary)", "धीमा (Slow)"], "answer": "लगातार (Continuous)"},
-    {"word": "Cornerstone", "options": ["छत (Roof)", "आधारशिला (Foundation)", "दीवार (Wall)"], "answer": "आधारशिला (Foundation)"},
-    {"word": "Hospitality", "options": ["दुश्मनी (Enmity)", "सत्कार (Guest Welcome)", "परिवहन (Transport)"], "answer": "सत्कार (Guest Welcome)"},
-    {"word": "Efficiency", "options": ["कार्यकुशलता (Work Ability)", "आलस (Laziness)", "शोर (Noise)"], "answer": "कार्यकुशलता (Work Ability)"}
+    {"word": "Cornerstone", "options": ["आधारशिला (Foundation)", "छत (Roof)", "दीवार (Wall)"], "answer": "आधारशिला (Foundation)"}
 ]
 
 # --- 3. SESSION STATE ---
@@ -67,23 +55,20 @@ with st.sidebar:
     st.markdown(f"### 🔥 Streak: **{st.session_state.streak} Days**")
     st.metric("Assessed Level", st.session_state.user_level)
     st.divider()
-    st.subheader("🎯 Learning Goal")
-    target_goal = st.slider("Target Accuracy %", 50, 100, 85)
     
     if st.session_state.history:
-        latest_score = st.session_state.history[-1]['score']
-        if latest_score >= target_goal: st.success(f"Goal Met! ({latest_score}%)")
-        else: st.warning(f"Below Goal ({latest_score}%)")
+        st.subheader("Performance Trend")
         df = pd.DataFrame(st.session_state.history)
         st.line_chart(df['score'])
+        st.download_button("📥 Download Portfolio", data=df.to_csv(index=False), file_name="my_portfolio.csv")
     
     if st.button("🗑️ Reset All Data"):
         st.session_state.clear()
         st.rerun()
 
 # --- 5. MAIN INTERFACE ---
-st.title("🏫 GEU  Blended Learning Lab")
-tab1, tab2 = st.tabs(["🎯 Placement & Practice", "🧩 Vocabulary Warmup"])
+st.title("🏫 GEU Blended Learning Lab")
+tab1, tab2 = st.tabs(["🎯 Practice Lab", "🧩 Vocabulary Warmup"])
 
 with tab1:
     col_sel, col_info = st.columns([1, 2])
@@ -100,10 +85,10 @@ with tab1:
             current_key = f"career_{les}"
 
     with col_info:
-        st.markdown("### Practice Sentence")
         st.info(f"**English:** {target_text}")
         st.success(f"**Hindi:** {hindi_text}")
 
+    # Dynamic Key Reset
     if current_key != st.session_state.last_lesson:
         st.session_state.last_lesson = current_key
         if 'recorder' in st.session_state: del st.session_state['recorder']
@@ -111,33 +96,31 @@ with tab1:
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("🔊 Listen"):
+        if st.button("🔊 Listen to Teacher"):
             speech_config = speechsdk.SpeechConfig(subscription=AZURE_KEY, region=AZURE_REGION)
             speech_config.speech_synthesis_voice_name = "en-IN-NeerjaNeural"
-            speechsdk.SpeechSynthesizer(speech_config=speech_config).speak_text_async(target_text)
-    with c2:
-        audio = mic_recorder(start_prompt="🎤 Start Record", stop_prompt="🛑 Stop", key=f"rec_{current_key}")
+            # Crucial: Disable speaker output for Cloud
+            synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+            
+            with st.spinner("Synthesizing..."):
+                result = synthesizer.speak_text_async(target_text).get()
+                if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                    st.audio(result.audio_data, format='audio/wav')
 
-# --- NEW VOCABULARY TAB LOGIC ---
+    with c2:
+        audio = mic_recorder(start_prompt="🎤 Start Record", stop_prompt="🛑 Stop & Analyze", key=f"rec_{current_key}")
+
 with tab2:
     st.subheader("Vocabulary Warmup")
     q = st.session_state.current_q
     st.write(f"**What is the Hindi meaning of '{q['word']}'?**")
-    
-    choice = st.radio("Choose the correct option:", q['options'], key="vocab_radio")
-    
-    col_a, col_b = st.columns([1, 4])
-    with col_a:
-        if st.button("Check Answer"):
-            if choice == q['answer']:
-                st.success("✅ Correct!")
-                st.balloons()
-            else:
-                st.error(f"❌ Incorrect. The answer is {q['answer']}.")
-    with col_b:
-        if st.button("Get New Word"):
-            st.session_state.current_q = random.choice(warmup_bank)
-            st.rerun()
+    choice = st.radio("Options:", q['options'], key="vocab_radio")
+    if st.button("Check Answer"):
+        if choice == q['answer']:
+            st.success("✅ Correct!")
+            st.balloons()
+        else:
+            st.error(f"❌ Incorrect. The answer is {q['answer']}.")
 
 # --- 6. ANALYSIS ENGINE ---
 if audio:
@@ -147,9 +130,11 @@ if audio:
         grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
         granularity=speechsdk.PronunciationAssessmentGranularity.Word
     )
+    
     push_stream = speechsdk.audio.PushAudioInputStream()
     push_stream.write(audio['bytes'])
     push_stream.close()
+    
     recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=speechsdk.audio.AudioConfig(stream=push_stream))
     pron_config.apply_to(recognizer)
     
@@ -161,11 +146,17 @@ if audio:
         assessment = res_json['NBest'][0]['PronunciationAssessment']
         score = int(assessment['AccuracyScore'])
         
-        # Streak Update
+        # Update Streak
         today = date.today()
         if st.session_state.last_practice_date != today:
             st.session_state.streak += 1
             st.session_state.last_practice_date = today
+
+        # Update Level
+        if mode == "Placement":
+            if score > 80: st.session_state.user_level = "Advanced"
+            elif score > 50: st.session_state.user_level = "Intermediate"
+            else: st.session_state.user_level = "Beginner"
 
         st.session_state.history.append({"lesson": current_key, "score": score, "time": datetime.now().strftime("%H:%M")})
         
