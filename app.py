@@ -111,16 +111,38 @@ with tab1:
         audio = mic_recorder(start_prompt="🎤 Start Record", stop_prompt="🛑 Stop & Analyze", key=f"rec_{current_key}")
 
 with tab2:
-    st.subheader("Vocabulary Warmup")
+    st.subheader("📚 Vocabulary Mastery")
+    st.write("Review these key terms before you start your speaking practice.")
+
+    # 1. Display all words in a clean table format
+    vocab_df = pd.DataFrame(warmup_bank)
+    # Cleaning up the options display for the table
+    vocab_df['Correct Meaning'] = vocab_df['answer']
+    st.table(vocab_df[['word', 'Correct Meaning']])
+
+    st.divider()
+
+    # 2. Interactive "Check Your Knowledge"
+    st.subheader("🧩 Quick Quiz")
     q = st.session_state.current_q
     st.write(f"**What is the Hindi meaning of '{q['word']}'?**")
-    choice = st.radio("Options:", q['options'], key="vocab_radio")
-    if st.button("Check Answer"):
-        if choice == q['answer']:
-            st.success("✅ Correct!")
-            st.balloons()
-        else:
-            st.error(f"❌ Incorrect. The answer is {q['answer']}.")
+    
+    choice = st.radio("Options:", q['options'], key="vocab_radio_new")
+    
+    col_a, col_b = st.columns([1, 4])
+    with col_a:
+        if st.button("Check Answer"):
+            if choice == q['answer']:
+                st.success("✅ Correct!")
+                st.balloons()
+            else:
+                st.error(f"❌ Incorrect. The answer is {q['answer']}.")
+    with col_b:
+        if st.button("Shuffle Quiz Word"):
+            st.session_state.current_q = random.choice(warmup_bank)
+            st.rerun()
+
+
 
 # --- 6. ANALYSIS ENGINE ---
 if audio:
